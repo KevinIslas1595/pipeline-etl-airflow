@@ -15,6 +15,24 @@ el clima (la lluvia) cambia las ventas.
 
 ---
 
+## Funcionando
+
+Una corrida real del DAG en Airflow: las 4 fuentes se procesan en paralelo y las
+12 tareas terminan bien.
+
+![Grafo del DAG en Airflow con todas las tareas exitosas](docs/capturas/1-airflow-grafo.png)
+
+El log de la última tarea (`resumen`) con lo que encontró el pipeline: ventas por
+día en pesos y dólares, clima, productos más vendidos y ventas con y sin lluvia.
+
+![Log de la tarea resumen en Airflow](docs/capturas/2-airflow-log-resumen.png)
+
+El resultado en el data warehouse, consultado desde Adminer: ranking de productos.
+
+![Consulta a analytics.ventas_por_producto en Adminer](docs/capturas/3-adminer-ventas-por-producto.png)
+
+---
+
 ## Las 4 fuentes
 
 | # | Fuente | Tipo | Qué trae | Cómo se carga |
@@ -225,5 +243,6 @@ pipeline-etl-airflow/
 │   ├── 00_esquema.sql        Tablas y vistas
 │   └── transformar.sql       T: staging → analytics
 ├── data/entrada/             Fuentes CSV y JSON
+├── docs/capturas/            Capturas de pantalla del README
 └── tests/                    Pruebas (unittest)
 ```
