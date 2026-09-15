@@ -1,0 +1,187 @@
+# Pipeline ETL "Dulcería Premium" con Apache Airflow 3 + PostgreSQL.
+#
+# Basado en el docker-compose oficial de Airflow 3.3.1, simplificado para una
+# sola computadora: LocalExecutor (sin Redis ni workers de Celery).
+#
+# Servicios:
+#   postgres-airflow       base de datos interna de Airflow (metadatos)
+#   postgres-dw            data warehouse con los datos del negocio (puerto 5433)
+#   adminer                visor web de la base de datos (http://localhost:8081)
+#   airflow-init           prepara la base de Airflow y crea el usuario admin
+#   airflow-apiserver      interfaz web de Airflow (http://localhost:8080)
+#   airflow-scheduler      programa y ejecuta las tareas
+#   airflow-dag-processor  lee los archivos de la carpeta dags/
+#
+# Uso:  docker compose up -d      (la primera vez tarda unos minutos)
+#       docker compose down       (apagar; los datos se conservan)
+#       docker compose down -v    (apagar y BORRAR todos los datos)
+---
+x-airflow-common:
+  &airflow-common
+  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.3.1}
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
+    AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY:-}
+    # El DAG queda encendido desde el inicio: se ejecuta solo, sin tocar nada.
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: America/Mexico_City
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-dulceria_jwt_secreto_local}
+    AIRFLOW__API_AUTH__JWT_ISSUER: ${AIRFLOW__API_AUTH__JWT_ISSUER:-airflow}
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    # Conexión al data warehouse que usan las tareas (conn_id = dulceria_dw).
+    AIRFLOW_CONN_DULCERIA_DW: postgresql://${DW_USUARIO:-dulceria}:${DW_CLAVE:-dulceria}@postgres-dw:5432/dulceria_dw
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./sql:/opt/airflow/sql:ro
+    - ./tests:/opt/airflow/tests:ro
+    - ./data/entrada:/opt/airflow/data/entrada:ro
+    # Logs y archivos crudos en volúmenes de Docker (no se llenan de basura
+    # las carpetas de Windows / OneDrive).
+    - airflow-logs:/opt/airflow/logs
+    - datos-crudos:/opt/airflow/data/crudo
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    &airflow-common-depends-on
+    postgres-airflow:
+      condition: service_healthy
+    postgres-dw:
+      condition: service_healthy
+
+services:
+  postgres-airflow:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  postgres-dw:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${DW_USUARIO:-dulceria}
+      POSTGRES_PASSWORD: ${DW_CLAVE:-dulceria}
+      POSTGRES_DB: dulceria_dw
+      TZ: America/Mexico_City
+    ports:
+      - "5433:5432"
+    volumes:
+      - dw-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DW_USUARIO:-dulceria}", "-d", "dulceria_dw"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  adminer:
+    image: adminer:5.5.1
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres-dw
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres-dw:
+        condition: service_healthy
+    restart: always
+
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/logs /opt/airflow/data/crudo
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/logs /opt/airflow/data/crudo
+        # /entrypoint aplica las variables _AIRFLOW_* de abajo:
+        # migra la base de Airflow y crea el usuario administrador.
+        /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+    user: "0:0"
+
+  # Para comandos sueltos, p. ej. correr las pruebas:
+  #   docker compose run --rm airflow-cli python -m unittest discover -s /opt/airflow/tests -v
+  airflow-cli:
+    <<: *airflow-common
+    profiles:
+      - debug
+    environment:
+      <<: *airflow-common-env
+      CONNECTION_CHECK_MAX_COUNT: "0"
+    command:
+      - bash
+      - -c
+      - airflow
+
+volumes:
+  airflow-db:
+  dw-db:
+  airflow-logs:
+  datos-crudos:

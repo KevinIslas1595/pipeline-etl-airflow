@@ -1,0 +1,15 @@
+# Configuración local (contraseñas propias)
+.env
+
+# Por si se corre algo fuera de Docker
+__pycache__/
+*.pyc
+.venv/
+logs/
+data/crudo/
+
+# Windows / editores
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

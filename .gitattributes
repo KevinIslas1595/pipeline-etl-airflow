@@ -1,0 +1,4 @@
+# Los archivos se usan dentro de contenedores Linux: siempre saltos de línea LF.
+* text=auto eol=lf
+*.png binary
+*.jpg binary

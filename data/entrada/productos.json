@@ -1,0 +1,111 @@
+{
+  "tienda": "Dulcería Premium",
+  "moneda": "MXN",
+  "actualizado": "2026-09-13",
+  "productos": [
+    {
+      "id": 1,
+      "nombre": "Aros de Durazno",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 86
+    },
+    {
+      "id": 2,
+      "nombre": "Tiburones",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 86
+    },
+    {
+      "id": 3,
+      "nombre": "Lombrices",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 80.8
+    },
+    {
+      "id": 4,
+      "nombre": "Ositos",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 80.8
+    },
+    {
+      "id": 5,
+      "nombre": "Frutitas",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 72.3
+    },
+    {
+      "id": 6,
+      "nombre": "Aros de Manzana",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 86
+    },
+    {
+      "id": 7,
+      "nombre": "Mangusano",
+      "marca": "Gomitas Lucky",
+      "tipo": "Enchilado",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 70.7
+    },
+    {
+      "id": 8,
+      "nombre": "Manguitos",
+      "marca": "Gomitas Lucky",
+      "tipo": "Enchilado",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 70.7
+    },
+    {
+      "id": 9,
+      "nombre": "Corazones",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 80.8
+    },
+    {
+      "id": 10,
+      "nombre": "Cubitos Neón",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 76.2
+    },
+    {
+      "id": 11,
+      "nombre": "Lombrices Neón",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 76.2
+    },
+    {
+      "id": 12,
+      "nombre": "Ositos Neón",
+      "marca": "Gomitas Lucky",
+      "tipo": "Dulce",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 76.2
+    },
+    {
+      "id": 13,
+      "nombre": "Ositos Enchilados",
+      "marca": "Gomitas Lucky",
+      "tipo": "Enchilado",
+      "presentacion": "Bolsa 1 kg",
+      "precio": 76.2
+    }
+  ]
+}
